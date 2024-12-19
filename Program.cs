@@ -4,9 +4,9 @@
             var customer1 = new Customer("Subaru");
             var customer2 = new Customer("Emilia");
 
-            Publisher.AddSubscriber(customer1, new Smartphone());
-            Publisher.AddSubscriber(customer1, new Computer());
-            Publisher.AddSubscriber(customer2, new Smartphone());
+            Publisher.AddSubscriber(customer1, typeof(Smartphone));
+            Publisher.AddSubscriber(customer1, typeof(Computer));
+            Publisher.AddSubscriber(customer2, typeof(Smartphone));
 
             Publisher.NotifySubscribers(new Smartphone());
             Publisher.NotifySubscribers(new Computer());
@@ -25,21 +25,25 @@
         }
 
         static class Publisher {
-            private static Dictionary<IProduct, List<ISubscriber>> _subscribers = new();
+            private static readonly Dictionary<Type, List<ISubscriber>> _subscribers = new();
 
-            public static void AddSubscriber(ISubscriber subscriber, IProduct product) {
-                if (_subscribers.ContainsKey(product)) {
-                    throw new Exception();
+            public static void AddSubscriber(ISubscriber subscriber, Type productType) {
+                if (!_subscribers.ContainsKey(productType)) {
+                    _subscribers[productType] = new List<ISubscriber>();
                 }
-                _subscribers[product] = new List<ISubscriber> { subscriber };
+                if (!_subscribers[productType].Contains(subscriber)) {
+                    _subscribers[productType].Add(subscriber);
+                }
             }
 
             public static void NotifySubscribers(IProduct product) {
-                string message;
-                foreach (var subscriber in _subscribers) {
-                    if (subscriber.Key.GetType() == product.GetType()) {
-                        message = product.NewReleaseMessage();
-                        subscriber.Value.ForEach(func => func.Notificate(message));
+                Type productType = product.GetType();
+
+                if (_subscribers.TryGetValue(productType, out List<ISubscriber> subscribers)) {
+                    string message = product.NewReleaseMessage();
+
+                    foreach (var subscriber in subscribers) {
+                        subscriber.Notificate(message);
                     }
                 }
             }
